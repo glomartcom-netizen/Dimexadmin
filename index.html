@@ -113,61 +113,47 @@ let provider,signer,dx,usdt;
 
 async function connect(){
 
-if(!window.ethereum){
-alert("Open inside MetaMask browser");
+if(typeof window.ethereum === "undefined"){
+alert("Open this page inside MetaMask or Trust Wallet browser");
 return;
 }
 
-provider=new ethers.providers.Web3Provider(window.ethereum);
+try{
+
+provider = new ethers.providers.Web3Provider(window.ethereum);
 await provider.send("eth_requestAccounts",[]);
-signer=provider.getSigner();
+signer = provider.getSigner();
 
-let addr=await signer.getAddress();
+let addr = await signer.getAddress();
 
-document.getElementById("wallet").innerHTML="Wallet: "+addr;
+document.getElementById("wallet").innerHTML = "Wallet: "+addr;
 
-if(addr.toLowerCase()!=ADMIN.toLowerCase()){
+// admin check
+if(addr.toLowerCase() !== ADMIN.toLowerCase()){
 alert("Not admin wallet");
 return;
 }
 
-dx=new ethers.Contract(DX,[
+// show panel
+document.getElementById("panel").style.display="block";
+
+// contracts
+dx = new ethers.Contract(DX,[
 "function balanceOf(address) view returns(uint)",
-"function transfer(address,uint) returns(bool)"
+"function transfer(address,uint)"
 ],signer);
 
-usdt=new ethers.Contract(USDT,[
+usdt = new ethers.Contract(USDT,[
 "function balanceOf(address) view returns(uint)"
 ],signer);
 
-document.getElementById("panel").style.display="block";
-
 load();
 setInterval(load,8000);
+
+}catch(e){
+console.log(e);
+alert("Wallet connect failed");
 }
-
-async function load(){
-
-let addr=await signer.getAddress();
-
-let dxBalance=await dx.balanceOf(addr);
-let usdtBalance=await usdt.balanceOf(addr);
-
-document.getElementById("dxBal").innerHTML=
-ethers.utils.formatUnits(dxBalance,18);
-
-document.getElementById("usdtBal").innerHTML=
-ethers.utils.formatUnits(usdtBalance,18);
-}
-
-async function transferDX(){
-let amt=document.getElementById("rewardAmt").value;
-await dx.transfer(STAKING,ethers.utils.parseUnits(amt,18));
-alert("DX sent to staking contract");
-}
-
-function sendReward(){
-alert("Use Transfer DX button above to send reward");
 }
 
 </script>
