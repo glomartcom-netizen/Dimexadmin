@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DimeX Admin</title>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+
+<style>
+body{
+background:#000;
+color:#fff;
+font-family:Arial;
+margin:0;
+}
+
+.header{
+text-align:center;
+padding:20px;
+font-size:26px;
+color:gold;
+font-weight:bold;
+}
+
+.btn{
+background:gold;
+border:none;
+padding:14px;
+border-radius:10px;
+font-weight:bold;
+margin-top:10px;
+width:220px;
+cursor:pointer;
+}
+
+.card{
+background:#111;
+padding:18px;
+margin:18px auto;
+width:92%;
+max-width:500px;
+border-radius:14px;
+text-align:center;
+}
+
+.value{
+color:gold;
+font-size:22px;
+font-weight:bold;
+margin-top:6px;
+}
+
+input{
+padding:12px;
+width:90%;
+margin-top:10px;
+background:#000;
+border:1px solid #333;
+color:#fff;
+border-radius:8px;
+}
+
+#wallet{
+color:#aaa;
+margin-top:10px;
+}
+
+@media(min-width:700px){
+.card{max-width:450px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">DimeX Admin Panel</div>
+
+<div class="card">
+<button class="btn" onclick="connect()">Connect Admin Wallet</button>
+<div id="wallet"></div>
+</div>
+
+<div id="panel" style="display:none">
+
+<div class="card">
+<h3>DX Reward Pool Balance</h3>
+<div id="dxBal" class="value">0</div>
+<button class="btn" onclick="sendReward()">Send Reward to Contract</button>
+</div>
+
+<div class="card">
+<h3>Admin Wallet USDT</h3>
+<div id="usdtBal" class="value">0</div>
+</div>
+
+<div class="card">
+<h3>Quick Tools</h3>
+<input id="rewardAmt" placeholder="DX amount to send">
+<button class="btn" onclick="transferDX()">Transfer DX</button>
+</div>
+
+</div>
+
+<script>
+
+const ADMIN="0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b";
+const STAKING="PASTE_STAKING_ADDRESS";
+const DX="PASTE_DX_TOKEN";
+const USDT="0x55d398326f99059fF775485246999027B3197955";
+
+let provider,signer,dx,usdt;
+
+async function connect(){
+
+if(!window.ethereum){
+alert("Open inside MetaMask browser");
+return;
+}
+
+provider=new ethers.providers.Web3Provider(window.ethereum);
+await provider.send("eth_requestAccounts",[]);
+signer=provider.getSigner();
+
+let addr=await signer.getAddress();
+
+document.getElementById("wallet").innerHTML="Wallet: "+addr;
+
+if(addr.toLowerCase()!=ADMIN.toLowerCase()){
+alert("Not admin wallet");
+return;
+}
+
+dx=new ethers.Contract(DX,[
+"function balanceOf(address) view returns(uint)",
+"function transfer(address,uint) returns(bool)"
+],signer);
+
+usdt=new ethers.Contract(USDT,[
+"function balanceOf(address) view returns(uint)"
+],signer);
+
+document.getElementById("panel").style.display="block";
+
+load();
+setInterval(load,8000);
+}
+
+async function load(){
+
+let addr=await signer.getAddress();
+
+let dxBalance=await dx.balanceOf(addr);
+let usdtBalance=await usdt.balanceOf(addr);
+
+document.getElementById("dxBal").innerHTML=
+ethers.utils.formatUnits(dxBalance,18);
+
+document.getElementById("usdtBal").innerHTML=
+ethers.utils.formatUnits(usdtBalance,18);
+}
+
+async function transferDX(){
+let amt=document.getElementById("rewardAmt").value;
+await dx.transfer(STAKING,ethers.utils.parseUnits(amt,18));
+alert("DX sent to staking contract");
+}
+
+function sendReward(){
+alert("Use Transfer DX button above to send reward");
+}
+
+</script>
+
+</body>
+  </html>
