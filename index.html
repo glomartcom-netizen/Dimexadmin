@@ -103,34 +103,35 @@ margin-top:10px;
 </div>
 
 <script>
-
 const ADMIN="0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b";
 const STAKING="PASTE_STAKING_ADDRESS";
 const DX="PASTE_DX_TOKEN";
 const USDT="0x55d398326f99059fF775485246999027B3197955";
 
-let provider,signer,dx,usdt;
+let provider, signer, dx, usdt;
 
 async function connect(){
 
-if(typeof window.ethereum === "undefined"){
+// wallet check
+if(!window.ethereum){
 alert("Open this page inside MetaMask or Trust Wallet browser");
 return;
 }
 
 try{
 
+// connect
 provider = new ethers.providers.Web3Provider(window.ethereum);
-await provider.send("eth_requestAccounts",[]);
-signer = provider.getSigner();
+await window.ethereum.request({ method: "eth_requestAccounts" });
 
-let addr = await signer.getAddress();
+signer = provider.getSigner();
+const addr = await signer.getAddress();
 
 document.getElementById("wallet").innerHTML = "Wallet: "+addr;
 
-// admin check
+// admin verify
 if(addr.toLowerCase() !== ADMIN.toLowerCase()){
-alert("Not admin wallet");
+alert("This wallet is not admin");
 return;
 }
 
@@ -150,12 +151,24 @@ usdt = new ethers.Contract(USDT,[
 load();
 setInterval(load,8000);
 
-}catch(e){
-console.log(e);
-alert("Wallet connect failed");
+}catch(err){
+console.log(err);
+alert("Wallet connection failed");
 }
 }
 
+async function load(){
+let addr = await signer.getAddress();
+
+let dxBal = await dx.balanceOf(addr);
+let usdtBal = await usdt.balanceOf(addr);
+
+document.getElementById("dxBal").innerHTML =
+ethers.utils.formatUnits(dxBal,18);
+
+document.getElementById("usdtBal").innerHTML =
+ethers.utils.formatUnits(usdtBal,18);
+}
 </script>
 
 </body>
