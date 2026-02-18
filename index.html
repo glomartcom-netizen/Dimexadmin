@@ -6,6 +6,7 @@
 <title>DimeX Admin</title>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+<script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0;text-align:center}
@@ -59,14 +60,19 @@ async function connectWallet(){
 
 try{
 
-if(!window.ethereum){
-alert("Open in MetaMask or TrustWallet browser");
-return;
-}
-
+// ===== MetaMask OR WalletConnect =====
+if(window.ethereum){
 provider = new ethers.providers.Web3Provider(window.ethereum);
 await provider.send("eth_requestAccounts",[]);
+}else{
+const wc = new WalletConnectProvider.default({
+rpc:{56:"https://bsc-dataseed.binance.org/"}
+});
+await wc.enable();
+provider = new ethers.providers.Web3Provider(wc);
+}
 
+// ===== NETWORK CHECK =====
 const network = await provider.getNetwork();
 if(network.chainId !== 56){
 alert("Switch to BSC Mainnet");
@@ -78,6 +84,7 @@ const addr = await signer.getAddress();
 
 document.getElementById("wallet").innerHTML="Wallet: "+addr;
 
+// ===== ADMIN CHECK =====
 if(addr.toLowerCase() !== ADMIN.toLowerCase()){
 alert("Not admin wallet");
 return;
@@ -85,6 +92,7 @@ return;
 
 document.getElementById("panel").style.display="block";
 
+// ===== CONTRACTS =====
 dmx = new ethers.Contract(DX,[
 "function balanceOf(address) view returns(uint)",
 "function transfer(address,uint)"
@@ -109,15 +117,21 @@ let addr = await signer.getAddress();
 let d = await dmx.balanceOf(addr);
 let u = await usdt.balanceOf(addr);
 
-document.getElementById("dmxBal").innerHTML = ethers.utils.formatUnits(d,18);
-document.getElementById("usdtBal").innerHTML = ethers.utils.formatUnits(u,18);
+document.getElementById("dmxBal").innerHTML=
+ethers.utils.formatUnits(d,18);
+
+document.getElementById("usdtBal").innerHTML=
+ethers.utils.formatUnits(u,18);
 }
 
 async function sendReward(){
 let amt=document.getElementById("rewardAmt").value;
 if(!amt) return alert("Enter amount");
 
-let tx=await dmx.transfer(STAKING, ethers.utils.parseUnits(amt,18));
+let tx=await dmx.transfer(
+STAKING,
+ethers.utils.parseUnits(amt,18)
+);
 await tx.wait();
 
 alert("Reward sent to staking");
