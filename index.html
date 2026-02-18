@@ -23,7 +23,7 @@ input{padding:12px;width:90%;margin-top:10px;background:#000;border:1px solid #3
 <div class="header">DimeX Admin Panel</div>
 
 <div class="card">
-<button class="btn" onclick="connect()">Connect Admin Wallet</button>
+<button class="btn" onclick="connectWallet()">Connect Admin Wallet</button>
 <div id="wallet"></div>
 </div>
 
@@ -53,9 +53,9 @@ const DX="PASTE_DMX_TOKEN";
 const STAKING="PASTE_STAKING_ADDRESS";
 const USDT="0x55d398326f99059fF775485246999027B3197955";
 
-let provider, signer, dx, usdt;
+let provider, signer, dmx, usdt;
 
-async function connect(){
+async function connectWallet(){
 
 try{
 
@@ -85,7 +85,7 @@ return;
 
 document.getElementById("panel").style.display="block";
 
-dx = new ethers.Contract(DX,[
+dmx = new ethers.Contract(DX,[
 "function balanceOf(address) view returns(uint)",
 "function transfer(address,uint)"
 ],signer);
@@ -99,14 +99,14 @@ setInterval(load,5000);
 
 }catch(e){
 console.log(e);
-alert("Connect failed");
+alert("Wallet connect failed");
 }
 }
 
 async function load(){
 let addr = await signer.getAddress();
 
-let d = await dx.balanceOf(addr);
+let d = await dmx.balanceOf(addr);
 let u = await usdt.balanceOf(addr);
 
 document.getElementById("dmxBal").innerHTML = ethers.utils.formatUnits(d,18);
@@ -117,9 +117,10 @@ async function sendReward(){
 let amt=document.getElementById("rewardAmt").value;
 if(!amt) return alert("Enter amount");
 
-let tx=await dx.transfer(STAKING, ethers.utils.parseUnits(amt,18));
+let tx=await dmx.transfer(STAKING, ethers.utils.parseUnits(amt,18));
 await tx.wait();
-alert("Reward sent");
+
+alert("Reward sent to staking");
 load();
 }
 
