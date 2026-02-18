@@ -84,8 +84,8 @@ margin-top:10px;
 <div id="panel" style="display:none">
 
 <div class="card">
-<h3>DX Reward Pool Balance</h3>
-<div id="dxBal" class="value">0</div>
+<h3>DMX Reward Pool Balance</h3>
+<div id="dmxBal" class="value">0</div>
 <button class="btn" onclick="sendReward()">Send Reward to Contract</button>
 </div>
 
@@ -96,8 +96,8 @@ margin-top:10px;
 
 <div class="card">
 <h3>Quick Tools</h3>
-<input id="rewardAmt" placeholder="DX amount to send">
-<button class="btn" onclick="transferDX()">Transfer DX</button>
+<input id="rewardAmt" placeholder="DMX amount to send">
+<button class="btn" onclick="transferDMX()">Transfer DMX</button>
 </div>
 
 </div>
@@ -105,57 +105,47 @@ margin-top:10px;
 <script>
 const ADMIN="0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b";
 const STAKING="PASTE_STAKING_ADDRESS";
-const DX="PASTE_DX_TOKEN";
+const DX="PASTE_DMX_TOKEN";
 const USDT="0x55d398326f99059fF775485246999027B3197955";
 
-let provider, signer, dx, usdt;
+let provider, signer, dmx, usdt;
 
-async function connect(){
+async function connectWallet(){
 
 try{
 
-// Wallet connect
+// ===== WALLET CONNECT =====
 if(window.ethereum){
 provider = new ethers.providers.Web3Provider(window.ethereum);
 await provider.send("eth_requestAccounts",[]);
-}else{
-alert("Open inside MetaMask or TrustWallet browser");
+}
+else{
+alert("Open in MetaMask or Trust Wallet browser");
 return;
 }
 
-// BSC network check
+// ===== NETWORK CHECK =====
 const network = await provider.getNetwork();
 if(network.chainId !== 56){
 alert("Switch to BSC Mainnet");
 return;
 }
 
-signer = provider.getSigner();
+const signer = provider.getSigner();
 const addr = await signer.getAddress();
 
-document.getElementById("wallet").innerHTML = "Wallet: "+addr;
+document.getElementById("wallet").innerHTML="Wallet: "+addr;
+document.getElementById("status").innerHTML="Connected";
 
-// admin verify
-if(addr.toLowerCase() !== ADMIN.toLowerCase()){
-alert("This wallet is not admin");
-return;
+// referral
+document.getElementById("refInput").value =
+window.location.origin+"?ref="+addr;
+
+// admin panel show
+if(addr.toLowerCase()==ADMIN.toLowerCase()){
+document.getElementById("adminPanel").style.display="block";
 }
 
-// show panel
-document.getElementById("panel").style.display="block";
-
-// contracts
-dx = new ethers.Contract(DX,[
-"function balanceOf(address) view returns(uint)",
-"function transfer(address,uint)"
-],signer);
-
-usdt = new ethers.Contract(USDT,[
-"function balanceOf(address) view returns(uint)"
-],signer);
-
-load();
-setInterval(load,8000);
 
 }catch(e){
 console.log(e);
@@ -169,8 +159,8 @@ let addr = await signer.getAddress();
 let dxBal = await dx.balanceOf(addr);
 let usdtBal = await usdt.balanceOf(addr);
 
-document.getElementById("dxBal").innerHTML =
-ethers.utils.formatUnits(dxBal,18);
+document.getElementById("dmxBal").innerHTML =
+ethers.utils.formatUnits(dmxBal,18);
 
 document.getElementById("usdtBal").innerHTML =
 ethers.utils.formatUnits(usdtBal,18);
