@@ -112,22 +112,28 @@ let provider, signer, dx, usdt;
 
 async function connect(){
 
-// wallet check
-if(!window.ethereum){
-alert("Open this page inside MetaMask or Trust Wallet browser");
+try{
+
+// MetaMask or WalletConnect
+if(window.ethereum){
+provider=new ethers.providers.Web3Provider(window.ethereum);
+await provider.send("eth_requestAccounts",[]);
+}else{
+alert("Open in MetaMask or TrustWallet");
 return;
 }
 
-try{
-
-// connect
-provider = new ethers.providers.Web3Provider(window.ethereum);
-await window.ethereum.request({ method: "eth_requestAccounts" });
+// network check
+const network = await provider.getNetwork();
+if(network.chainId !== 56){
+alert("Switch to BSC Mainnet");
+return;
+}
 
 signer = provider.getSigner();
 const addr = await signer.getAddress();
 
-document.getElementById("wallet").innerHTML = "Wallet: "+addr;
+document.getElementById("wallet").innerHTML="Wallet: "+addr;
 
 // admin verify
 if(addr.toLowerCase() !== ADMIN.toLowerCase()){
@@ -153,7 +159,7 @@ setInterval(load,8000);
 
 }catch(err){
 console.log(err);
-alert("Wallet connection failed");
+alert("Wallet connect failed");
 }
 }
 
