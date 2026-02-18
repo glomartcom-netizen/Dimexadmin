@@ -114,16 +114,16 @@ async function connect(){
 
 try{
 
-// MetaMask or WalletConnect
+// Wallet connect
 if(window.ethereum){
-provider=new ethers.providers.Web3Provider(window.ethereum);
+provider = new ethers.providers.Web3Provider(window.ethereum);
 await provider.send("eth_requestAccounts",[]);
 }else{
-alert("Open in MetaMask or TrustWallet");
+alert("Open inside MetaMask or TrustWallet browser");
 return;
 }
 
-// network check
+// BSC network check
 const network = await provider.getNetwork();
 if(network.chainId !== 56){
 alert("Switch to BSC Mainnet");
@@ -133,7 +133,7 @@ return;
 signer = provider.getSigner();
 const addr = await signer.getAddress();
 
-document.getElementById("wallet").innerHTML="Wallet: "+addr;
+document.getElementById("wallet").innerHTML = "Wallet: "+addr;
 
 // admin verify
 if(addr.toLowerCase() !== ADMIN.toLowerCase()){
@@ -157,8 +157,8 @@ usdt = new ethers.Contract(USDT,[
 load();
 setInterval(load,8000);
 
-}catch(err){
-console.log(err);
+}catch(e){
+console.log(e);
 alert("Wallet connect failed");
 }
 }
@@ -178,4 +178,4 @@ ethers.utils.formatUnits(usdtBal,18);
 </script>
 
 </body>
-  </html>
+</html>
