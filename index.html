@@ -8,67 +8,13 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
 
 <style>
-body{
-background:#000;
-color:#fff;
-font-family:Arial;
-margin:0;
-}
-
-.header{
-text-align:center;
-padding:20px;
-font-size:26px;
-color:gold;
-font-weight:bold;
-}
-
-.btn{
-background:gold;
-border:none;
-padding:14px;
-border-radius:10px;
-font-weight:bold;
-margin-top:10px;
-width:220px;
-cursor:pointer;
-}
-
-.card{
-background:#111;
-padding:18px;
-margin:18px auto;
-width:92%;
-max-width:500px;
-border-radius:14px;
-text-align:center;
-}
-
-.value{
-color:gold;
-font-size:22px;
-font-weight:bold;
-margin-top:6px;
-}
-
-input{
-padding:12px;
-width:90%;
-margin-top:10px;
-background:#000;
-border:1px solid #333;
-color:#fff;
-border-radius:8px;
-}
-
-#wallet{
-color:#aaa;
-margin-top:10px;
-}
-
-@media(min-width:700px){
-.card{max-width:450px}
-}
+body{background:#000;color:#fff;font-family:Arial;margin:0;text-align:center}
+.header{padding:20px;font-size:26px;color:gold;font-weight:bold}
+.btn{background:gold;border:none;padding:14px;border-radius:10px;font-weight:bold;margin-top:10px;width:220px;cursor:pointer}
+.card{background:#111;padding:18px;margin:18px auto;width:92%;max-width:500px;border-radius:14px}
+.value{color:gold;font-size:22px;font-weight:bold;margin-top:6px}
+input{padding:12px;width:90%;margin-top:10px;background:#000;border:1px solid #333;color:#fff;border-radius:8px}
+#wallet{color:#aaa;margin-top:10px}
 </style>
 </head>
 
@@ -84,87 +30,99 @@ margin-top:10px;
 <div id="panel" style="display:none">
 
 <div class="card">
-<h3>DMX Reward Pool Balance</h3>
+<h3>DMX Balance</h3>
 <div id="dmxBal" class="value">0</div>
-<button class="btn" onclick="sendReward()">Send Reward to Contract</button>
 </div>
 
 <div class="card">
-<h3>Admin Wallet USDT</h3>
+<h3>USDT Balance</h3>
 <div id="usdtBal" class="value">0</div>
 </div>
 
 <div class="card">
-<h3>Quick Tools</h3>
-<input id="rewardAmt" placeholder="DMX amount to send">
-<button class="btn" onclick="transferDMX()">Transfer DMX</button>
+<input id="rewardAmt" placeholder="DMX amount">
+<button class="btn" onclick="sendReward()">Send to Staking</button>
 </div>
 
 </div>
 
 <script>
+
 const ADMIN="0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b";
-const STAKING="PASTE_STAKING_ADDRESS";
 const DX="PASTE_DMX_TOKEN";
+const STAKING="PASTE_STAKING_ADDRESS";
 const USDT="0x55d398326f99059fF775485246999027B3197955";
 
-let provider, signer, dmx, usdt;
+let provider, signer, dx, usdt;
 
-async function connectWallet(){
+async function connect(){
 
 try{
 
-// ===== WALLET CONNECT =====
-if(window.ethereum){
-provider = new ethers.providers.Web3Provider(window.ethereum);
-await provider.send("eth_requestAccounts",[]);
-}
-else{
-alert("Open in MetaMask or Trust Wallet browser");
+if(!window.ethereum){
+alert("Open in MetaMask or TrustWallet browser");
 return;
 }
 
-// ===== NETWORK CHECK =====
+provider = new ethers.providers.Web3Provider(window.ethereum);
+await provider.send("eth_requestAccounts",[]);
+
 const network = await provider.getNetwork();
 if(network.chainId !== 56){
 alert("Switch to BSC Mainnet");
 return;
 }
 
-const signer = provider.getSigner();
+signer = provider.getSigner();
 const addr = await signer.getAddress();
 
 document.getElementById("wallet").innerHTML="Wallet: "+addr;
-document.getElementById("status").innerHTML="Connected";
 
-// referral
-document.getElementById("refInput").value =
-window.location.origin+"?ref="+addr;
-
-// admin panel show
-if(addr.toLowerCase()==ADMIN.toLowerCase()){
-document.getElementById("adminPanel").style.display="block";
+if(addr.toLowerCase() !== ADMIN.toLowerCase()){
+alert("Not admin wallet");
+return;
 }
 
+document.getElementById("panel").style.display="block";
+
+dx = new ethers.Contract(DX,[
+"function balanceOf(address) view returns(uint)",
+"function transfer(address,uint)"
+],signer);
+
+usdt = new ethers.Contract(USDT,[
+"function balanceOf(address) view returns(uint)"
+],signer);
+
+load();
+setInterval(load,5000);
 
 }catch(e){
 console.log(e);
-alert("Wallet connect failed");
+alert("Connect failed");
 }
 }
 
 async function load(){
 let addr = await signer.getAddress();
 
-let dxBal = await dx.balanceOf(addr);
-let usdtBal = await usdt.balanceOf(addr);
+let d = await dx.balanceOf(addr);
+let u = await usdt.balanceOf(addr);
 
-document.getElementById("dmxBal").innerHTML =
-ethers.utils.formatUnits(dmxBal,18);
-
-document.getElementById("usdtBal").innerHTML =
-ethers.utils.formatUnits(usdtBal,18);
+document.getElementById("dmxBal").innerHTML = ethers.utils.formatUnits(d,18);
+document.getElementById("usdtBal").innerHTML = ethers.utils.formatUnits(u,18);
 }
+
+async function sendReward(){
+let amt=document.getElementById("rewardAmt").value;
+if(!amt) return alert("Enter amount");
+
+let tx=await dx.transfer(STAKING, ethers.utils.parseUnits(amt,18));
+await tx.wait();
+alert("Reward sent");
+load();
+}
+
 </script>
 
 </body>
