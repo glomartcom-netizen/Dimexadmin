@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DimeX Full Admin Panel</title>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-
+<!-- Stable Ethers CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  
 <style>
 body{margin:0;background:#000;color:#fff;font-family:Arial;text-align:center;}
 .header{padding:20px;background:#0b0b0b;border-bottom:1px solid #222;}
@@ -148,6 +149,7 @@ async function connectWallet(){
       return;
     }
 
+    // Request Account
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts"
     });
@@ -157,6 +159,7 @@ async function connectWallet(){
 
     const network = await provider.getNetwork();
 
+    // Auto switch to BSC
     if(network.chainId !== 56){
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -164,14 +167,14 @@ async function connectWallet(){
       });
     }
 
-    const userAddress = accounts[0];
+    userAddress = accounts[0];
 
-    document.getElementById("walletDisplay").innerHTML =
-      "Connected: " +
-      userAddress.slice(0,6) + "..." +
-      userAddress.slice(-4) +
-      "<br><br>Network: BSC Mainnet (56)";
-
+document.getElementById("walletDisplay").innerHTML =
+  "Connected: " +
+  userAddress.slice(0,6) + "..." +
+  userAddress.slice(-4) +
+  "<br><br>Network: BSC Mainnet (56)";
+    
     // 🔐 ADMIN CHECK
     if(userAddress.toLowerCase() !== ADMIN.toLowerCase()){
       alert("Not Admin Wallet");
