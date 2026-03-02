@@ -3,100 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DimeX Admin Panel</title>
+<title>DimeX Full Admin Panel</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  background:#000;
-  font-family:Poppins;
-  color:#fff;
-}
-.container{
-  max-width:900px;
-  margin:auto;
-  padding:30px 20px;
-}
-.card{
-  background:#111;
-  border:1px solid gold;
-  padding:25px;
-  border-radius:16px;
-  margin-bottom:25px;
-}
-h2{
-  color:gold;
-  margin-top:0;
-}
-input,select{
-  width:100%;
-  padding:12px;
-  background:#000;
-  border:1px solid #333;
-  color:#fff;
-  border-radius:8px;
-  margin-top:10px;
-}
-button{
-  width:100%;
-  padding:12px;
-  background:gold;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-  margin-top:10px;
-  cursor:pointer;
-}
-.connect-btn{
-  width:auto;
-  padding:10px 20px;
-}
-#status{
-  margin-top:15px;
-  color:gold;
-}
+body{margin:0;background:#000;color:#fff;font-family:Arial;text-align:center;}
+.header{padding:20px;background:#0b0b0b;border-bottom:1px solid #222;}
+h1{color:gold;}
+button{padding:12px 20px;background:gold;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px}
+.card{background:#111;border:1px solid rgba(255,215,0,.4);padding:20px;margin:20px auto;width:95%;max-width:550px;border-radius:12px}
+input,select{width:95%;padding:10px;margin-top:10px;background:#000;border:1px solid #333;color:#fff;border-radius:6px}
+#adminSection{display:none}
 </style>
 </head>
+
 <body>
 
-<div class="container">
+<div class="header">
+<h1>DimeX Admin Control</h1>
+<button onclick="connectWallet()">Connect Admin Wallet</button>
+<div id="walletDisplay" style="margin-top:10px;color:gold"></div>
+</div>
 
-<h2>DimeX Admin Control Panel</h2>
-
-<button class="connect-btn" onclick="openConnectModal()">Connect Admin Wallet</button>
-
-<div id="walletDisplay" style="margin-top:15px;color:gold;"></div>
-
-<div id="status"></div>
-
-<!-- ADMIN CONTROLS -->
-<div id="adminSection" style="display:none;">
+<div id="adminSection">
 
 <div class="card">
-<h2>Pause Control</h2>
-<button onclick="pauseStaking()">Pause Staking</button>
-<button onclick="unpauseStaking()">Unpause Staking</button>
+<h3>Pause Control</h3>
+<button onclick="pauseStaking()">Pause</button>
+<button onclick="unpauseStaking()">Unpause</button>
 </div>
 
 <div class="card">
-<h2>Update Reward Rate</h2>
-<input id="durationDays" placeholder="Duration (90 / 180 / 365)">
-<input id="newRate" placeholder="New Daily %">
-<button onclick="updatePlanRate()">Update Rate</button>
+<h3>Plan Reward Rate</h3>
+<input id="rateDays" placeholder="Duration (90 / 180 / 365)">
+<input id="ratePercent" placeholder="New Percent">
+<button onclick="updateRate()">Update Rate</button>
 </div>
 
 <div class="card">
-<h2>Update Minimum Stake</h2>
-<input id="minUSDT" placeholder="Minimum USDT">
-<button onclick="updateMinUSDT()">Update USDT</button>
-<input id="minDMX" placeholder="Minimum DMX">
-<button onclick="updateMinDMX()">Update DMX</button>
+<h3>Minimum Stake</h3>
+<input id="minUSDT" placeholder="Min USDT">
+<button onclick="setMinUSDT()">Update USDT</button>
+<input id="minDMX" placeholder="Min DMX">
+<button onclick="setMinDMX()">Update DMX</button>
 </div>
 
 <div class="card">
-<h2>Emergency Withdraw</h2>
+<h3>Emergency Withdraw</h3>
 <select id="withdrawToken">
 <option value="USDT">USDT</option>
 <option value="DMX">DMX</option>
@@ -106,173 +60,169 @@ button{
 </div>
 
 <div class="card">
-<h2>Change Treasury</h2>
+<h3>Treasury</h3>
 <input id="newTreasury" placeholder="New Treasury Address">
-<button onclick="updateTreasury()">Update Treasury</button>
+<button onclick="updateTreasury()">Update</button>
 </div>
 
 <div class="card">
-<h2>Transfer Ownership</h2>
+<h3>Ownership</h3>
 <input id="newOwner" placeholder="New Owner Address">
-<button onclick="transferOwner()">Transfer Ownership</button>
+<button onclick="transferOwner()">Transfer</button>
 </div>
 
 <div class="card">
-<h2>Update Direct %</h2>
+<h3>Direct Bonus %</h3>
 <input id="directPercent" placeholder="New Direct %">
-<button onclick="updateDirect()">Update Direct</button>
+<button onclick="updateDirect()">Update</button>
 </div>
 
 <div class="card">
-<h2>Update Level %</h2>
-<input id="levelNumber" placeholder="Level Number">
-<input id="levelPercent" placeholder="New %">
-<button onclick="updateLevel()">Update Level</button>
+<h3>Level Bonus %</h3>
+<input id="levelNumber" placeholder="Level (1-25)">
+<input id="levelPercent" placeholder="Percent">
+<button onclick="updateLevel()">Update</button>
 </div>
 
 <div class="card">
-<h2>Manual Price</h2>
-<input id="manualPrice" placeholder="Price in USDT">
+<h3>DMX Price Control</h3>
+<input id="manualPrice" placeholder="Manual Price">
 <button onclick="setManualPrice()">Set Price</button>
 
 <select id="priceMode">
 <option value="true">Enable Manual</option>
-<option value="false">Live Pancake</option>
+<option value="false">Use Live</option>
 </select>
-<button onclick="togglePriceMode()">Update Mode</button>
+<button onclick="togglePrice()">Update Mode</button>
 </div>
 
 </div>
-</div>
 
-<script type="module">
-
-import { createAppKit } from 'https://esm.sh/@reown/appkit'
-import { Ethers5Adapter } from 'https://esm.sh/@reown/appkit-adapter-ethers5'
-import { bsc } from 'https://esm.sh/@reown/appkit/networks'
-import { ethers } from 'https://esm.sh/ethers@5.7.2'
-
-window.ethers = ethers
+<script>
 
 const ADMIN = "0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b"
 const STAKING_ADDRESS = "PUT_STAKING_CONTRACT"
-const USDT="0x55d398326f99059fF775485246999027B3197955"
-const DMX="PUT_DMX_TOKEN"
+const USDT = "0x55d398326f99059fF775485246999027B3197955"
+const DMX = "PUT_DMX_TOKEN"
 
-const STAKE_ABI = [
-  "function pauseStaking() external",
-  "function unpauseStaking() external",
-  "function setRewardRate(uint256,uint256) external",
-  "function setMinimumUSDT(uint256) external",
-  "function setMinimumDMX(uint256) external",
-  "function emergencyWithdrawToken(address,uint256) external",
-  "function setTreasury(address) external",
-  "function transferOwnership(address) external",
-  "function setDirectPercent(uint256) external",
-  "function setLevelPercent(uint256,uint256) external",
-  "function setManualPrice(uint256) external",
-  "function toggleManualPrice(bool) external"
+const ABI = [
+"function pauseStaking() external",
+"function unpauseStaking() external",
+"function setRewardRate(uint256,uint256) external",
+"function setMinimumUSDT(uint256) external",
+"function setMinimumDMX(uint256) external",
+"function emergencyWithdrawToken(address,uint256) external",
+"function setTreasury(address) external",
+"function transferOwnership(address) external",
+"function setDirectPercent(uint256) external",
+"function setLevelPercent(uint256,uint256) external",
+"function setManualPrice(uint256) external",
+"function toggleManualPrice(bool) external"
 ]
 
-const modal = createAppKit({
-  adapters: [new Ethers5Adapter()],
-  networks: [bsc],
-  projectId: 'f9471d926852cbae4eb35a8b39c69bf9'
+let provider, signer, contract
+
+async function connectWallet(){
+
+if(!window.ethereum){
+alert("Open in MetaMask browser")
+return
+}
+
+const accounts = await window.ethereum.request({method:"eth_requestAccounts"})
+
+provider = new ethers.providers.Web3Provider(window.ethereum)
+signer = provider.getSigner()
+
+const network = await provider.getNetwork()
+if(network.chainId !== 56){
+await window.ethereum.request({
+method:"wallet_switchEthereumChain",
+params:[{chainId:"0x38"}]
 })
-
-window.openConnectModal = () => modal.open()
-
-let signer
-
-modal.subscribe(async (state)=>{
-  if(!state?.address) return
-
-  if(state.address.toLowerCase() !== ADMIN.toLowerCase()){
-    alert("Not Admin Wallet")
-    return
-  }
-
-  document.getElementById("walletDisplay").innerHTML =
-    "Admin Connected: " + state.address
-
-  document.getElementById("adminSection").style.display="block"
-
-  const walletProvider = await modal.getProvider()
-  const provider = new ethers.providers.Web3Provider(walletProvider)
-  signer = provider.getSigner()
-})
-
-function contract(){
-  return new ethers.Contract(STAKING_ADDRESS, STAKE_ABI, signer)
 }
 
-async function pauseStaking(){ await (await contract().pauseStaking()).wait(); alert("Paused") }
-async function unpauseStaking(){ await (await contract().unpauseStaking()).wait(); alert("Unpaused") }
+const user = accounts[0]
 
-async function updatePlanRate(){
-  let d = document.getElementById("durationDays").value
-  let r = document.getElementById("newRate").value
-  await (await contract().setRewardRate(d*86400,r)).wait()
-  alert("Rate Updated")
+document.getElementById("walletDisplay").innerHTML = "Connected: " + user
+
+if(user.toLowerCase() !== ADMIN.toLowerCase()){
+alert("Not Admin Wallet")
+return
 }
 
-async function updateMinUSDT(){
-  let v=document.getElementById("minUSDT").value
-  await (await contract().setMinimumUSDT(ethers.utils.parseUnits(v,18))).wait()
-  alert("Updated")
+contract = new ethers.Contract(STAKING_ADDRESS, ABI, signer)
+document.getElementById("adminSection").style.display="block"
 }
 
-async function updateMinDMX(){
-  let v=document.getElementById("minDMX").value
-  await (await contract().setMinimumDMX(ethers.utils.parseUnits(v,18))).wait()
-  alert("Updated")
+/* FUNCTIONS */
+
+async function pauseStaking(){await (await contract.pauseStaking()).wait();alert("Paused")}
+async function unpauseStaking(){await (await contract.unpauseStaking()).wait();alert("Unpaused")}
+
+async function updateRate(){
+const d=document.getElementById("rateDays").value
+const p=document.getElementById("ratePercent").value
+await (await contract.setRewardRate(d*86400,p)).wait()
+alert("Rate Updated")
+}
+
+async function setMinUSDT(){
+const v=document.getElementById("minUSDT").value
+await (await contract.setMinimumUSDT(ethers.utils.parseUnits(v,18))).wait()
+alert("Min USDT Updated")
+}
+
+async function setMinDMX(){
+const v=document.getElementById("minDMX").value
+await (await contract.setMinimumDMX(ethers.utils.parseUnits(v,18))).wait()
+alert("Min DMX Updated")
 }
 
 async function emergencyWithdraw(){
-  let t=document.getElementById("withdrawToken").value==="USDT"?USDT:DMX
-  let a=document.getElementById("withdrawAmount").value
-  await (await contract().emergencyWithdrawToken(t,ethers.utils.parseUnits(a,18))).wait()
-  alert("Withdraw Done")
+const token=document.getElementById("withdrawToken").value==="USDT"?USDT:DMX
+const amt=document.getElementById("withdrawAmount").value
+await (await contract.emergencyWithdrawToken(token,ethers.utils.parseUnits(amt,18))).wait()
+alert("Withdraw Complete")
 }
 
 async function updateTreasury(){
-  let a=document.getElementById("newTreasury").value
-  await (await contract().setTreasury(a)).wait()
-  alert("Treasury Updated")
+const a=document.getElementById("newTreasury").value
+await (await contract.setTreasury(a)).wait()
+alert("Treasury Updated")
 }
 
 async function transferOwner(){
-  let a=document.getElementById("newOwner").value
-  await (await contract().transferOwnership(a)).wait()
-  alert("Ownership Transferred")
+const a=document.getElementById("newOwner").value
+await (await contract.transferOwnership(a)).wait()
+alert("Ownership Transferred")
 }
 
 async function updateDirect(){
-  let v=document.getElementById("directPercent").value
-  await (await contract().setDirectPercent(v)).wait()
-  alert("Direct Updated")
+const v=document.getElementById("directPercent").value
+await (await contract.setDirectPercent(v)).wait()
+alert("Direct Updated")
 }
 
 async function updateLevel(){
-  let l=document.getElementById("levelNumber").value
-  let p=document.getElementById("levelPercent").value
-  await (await contract().setLevelPercent(l,p)).wait()
-  alert("Level Updated")
+const l=document.getElementById("levelNumber").value
+const p=document.getElementById("levelPercent").value
+await (await contract.setLevelPercent(l,p)).wait()
+alert("Level Updated")
 }
 
 async function setManualPrice(){
-  let p=document.getElementById("manualPrice").value
-  await (await contract().setManualPrice(ethers.utils.parseUnits(p,18))).wait()
-  alert("Price Updated")
+const p=document.getElementById("manualPrice").value
+await (await contract.setManualPrice(ethers.utils.parseUnits(p,18))).wait()
+alert("Price Updated")
 }
 
-async function togglePriceMode(){
-  let m=document.getElementById("priceMode").value==="true"
-  await (await contract().toggleManualPrice(m)).wait()
-  alert("Mode Updated")
+async function togglePrice(){
+const m=document.getElementById("priceMode").value==="true"
+await (await contract.toggleManualPrice(m)).wait()
+alert("Mode Updated")
 }
 
 </script>
-
 </body>
 </html>
