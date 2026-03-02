@@ -148,7 +148,6 @@ async function connectWallet(){
       return;
     }
 
-    // Request Account
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts"
     });
@@ -158,7 +157,6 @@ async function connectWallet(){
 
     const network = await provider.getNetwork();
 
-    // Auto switch to BSC
     if(network.chainId !== 56){
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -166,17 +164,31 @@ async function connectWallet(){
       });
     }
 
-    userAddress = accounts[0];
+    const userAddress = accounts[0];
 
-document.getElementById("walletDisplay").innerHTML =
-  "Connected: " +
-  userAddress.slice(0,6) + "..." +
-  userAddress.slice(-4) +
-  "<br><br>Network: BSC Mainnet (56)";
+    document.getElementById("walletDisplay").innerHTML =
+      "Connected: " +
+      userAddress.slice(0,6) + "..." +
+      userAddress.slice(-4) +
+      "<br><br>Network: BSC Mainnet (56)";
 
+    // 🔐 ADMIN CHECK
+    if(userAddress.toLowerCase() !== ADMIN.toLowerCase()){
+      alert("Not Admin Wallet");
+      connecting = false;
+      return;
     }
-  
-  }catch(err){
+
+    // ✅ Attach contract
+    contract = new ethers.Contract(
+      STAKING_ADDRESS,
+      ABI,
+      signer
+    );
+
+    document.getElementById("adminSection").style.display = "block";
+
+  } catch(err){
     alert("Connection Failed: " + err.message);
     console.log(err);
   }
