@@ -3,139 +3,273 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DimeX Admin</title>
+<title>DimeX Admin Panel</title>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-<script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-body{background:#000;color:#fff;font-family:Arial;margin:0;text-align:center}
-.header{padding:20px;font-size:26px;color:gold;font-weight:bold}
-.btn{background:gold;border:none;padding:14px;border-radius:10px;font-weight:bold;margin-top:10px;width:220px;cursor:pointer}
-.card{background:#111;padding:18px;margin:18px auto;width:92%;max-width:500px;border-radius:14px}
-.value{color:gold;font-size:22px;font-weight:bold;margin-top:6px}
-input{padding:12px;width:90%;margin-top:10px;background:#000;border:1px solid #333;color:#fff;border-radius:8px}
-#wallet{color:#aaa;margin-top:10px}
+body{
+  margin:0;
+  background:#000;
+  font-family:Poppins;
+  color:#fff;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:30px 20px;
+}
+.card{
+  background:#111;
+  border:1px solid gold;
+  padding:25px;
+  border-radius:16px;
+  margin-bottom:25px;
+}
+h2{
+  color:gold;
+  margin-top:0;
+}
+input,select{
+  width:100%;
+  padding:12px;
+  background:#000;
+  border:1px solid #333;
+  color:#fff;
+  border-radius:8px;
+  margin-top:10px;
+}
+button{
+  width:100%;
+  padding:12px;
+  background:gold;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  margin-top:10px;
+  cursor:pointer;
+}
+.connect-btn{
+  width:auto;
+  padding:10px 20px;
+}
+#status{
+  margin-top:15px;
+  color:gold;
+}
 </style>
 </head>
-
 <body>
 
-<div class="header">DimeX Admin Panel</div>
+<div class="container">
+
+<h2>DimeX Admin Control Panel</h2>
+
+<button class="connect-btn" onclick="openConnectModal()">Connect Admin Wallet</button>
+
+<div id="walletDisplay" style="margin-top:15px;color:gold;"></div>
+
+<div id="status"></div>
+
+<!-- ADMIN CONTROLS -->
+<div id="adminSection" style="display:none;">
 
 <div class="card">
-<button class="btn" onclick="connectWallet()">Connect Admin Wallet</button>
-<div id="wallet"></div>
-</div>
-
-<div id="panel" style="display:none">
-
-<div class="card">
-<h3>DMX Balance</h3>
-<div id="dmxBal" class="value">0</div>
+<h2>Pause Control</h2>
+<button onclick="pauseStaking()">Pause Staking</button>
+<button onclick="unpauseStaking()">Unpause Staking</button>
 </div>
 
 <div class="card">
-<h3>USDT Balance</h3>
-<div id="usdtBal" class="value">0</div>
+<h2>Update Reward Rate</h2>
+<input id="durationDays" placeholder="Duration (90 / 180 / 365)">
+<input id="newRate" placeholder="New Daily %">
+<button onclick="updatePlanRate()">Update Rate</button>
 </div>
 
 <div class="card">
-<input id="rewardAmt" placeholder="DMX amount">
-<button class="btn" onclick="sendReward()">Send to Staking</button>
+<h2>Update Minimum Stake</h2>
+<input id="minUSDT" placeholder="Minimum USDT">
+<button onclick="updateMinUSDT()">Update USDT</button>
+<input id="minDMX" placeholder="Minimum DMX">
+<button onclick="updateMinDMX()">Update DMX</button>
+</div>
+
+<div class="card">
+<h2>Emergency Withdraw</h2>
+<select id="withdrawToken">
+<option value="USDT">USDT</option>
+<option value="DMX">DMX</option>
+</select>
+<input id="withdrawAmount" placeholder="Amount">
+<button onclick="emergencyWithdraw()">Withdraw</button>
+</div>
+
+<div class="card">
+<h2>Change Treasury</h2>
+<input id="newTreasury" placeholder="New Treasury Address">
+<button onclick="updateTreasury()">Update Treasury</button>
+</div>
+
+<div class="card">
+<h2>Transfer Ownership</h2>
+<input id="newOwner" placeholder="New Owner Address">
+<button onclick="transferOwner()">Transfer Ownership</button>
+</div>
+
+<div class="card">
+<h2>Update Direct %</h2>
+<input id="directPercent" placeholder="New Direct %">
+<button onclick="updateDirect()">Update Direct</button>
+</div>
+
+<div class="card">
+<h2>Update Level %</h2>
+<input id="levelNumber" placeholder="Level Number">
+<input id="levelPercent" placeholder="New %">
+<button onclick="updateLevel()">Update Level</button>
+</div>
+
+<div class="card">
+<h2>Manual Price</h2>
+<input id="manualPrice" placeholder="Price in USDT">
+<button onclick="setManualPrice()">Set Price</button>
+
+<select id="priceMode">
+<option value="true">Enable Manual</option>
+<option value="false">Live Pancake</option>
+</select>
+<button onclick="togglePriceMode()">Update Mode</button>
 </div>
 
 </div>
+</div>
 
-<script>
+<script type="module">
 
-const ADMIN="0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b";
-const DX="PASTE_DMX_TOKEN";
-const STAKING="PASTE_STAKING_ADDRESS";
-const USDT="0x55d398326f99059fF775485246999027B3197955";
+import { createAppKit } from 'https://esm.sh/@reown/appkit'
+import { Ethers5Adapter } from 'https://esm.sh/@reown/appkit-adapter-ethers5'
+import { bsc } from 'https://esm.sh/@reown/appkit/networks'
+import { ethers } from 'https://esm.sh/ethers@5.7.2'
 
-let provider, signer, dmx, usdt;
+window.ethers = ethers
 
-async function connectWallet(){
+const ADMIN = "0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b"
+const STAKING_ADDRESS = "PUT_STAKING_CONTRACT"
+const USDT="0x55d398326f99059fF775485246999027B3197955"
+const DMX="PUT_DMX_TOKEN"
 
-try{
+const STAKE_ABI = [
+  "function pauseStaking() external",
+  "function unpauseStaking() external",
+  "function setRewardRate(uint256,uint256) external",
+  "function setMinimumUSDT(uint256) external",
+  "function setMinimumDMX(uint256) external",
+  "function emergencyWithdrawToken(address,uint256) external",
+  "function setTreasury(address) external",
+  "function transferOwnership(address) external",
+  "function setDirectPercent(uint256) external",
+  "function setLevelPercent(uint256,uint256) external",
+  "function setManualPrice(uint256) external",
+  "function toggleManualPrice(bool) external"
+]
 
-// ===== MetaMask OR WalletConnect =====
-if(window.ethereum){
-provider = new ethers.providers.Web3Provider(window.ethereum);
-await provider.send("eth_requestAccounts",[]);
-}else{
-const wc = new WalletConnectProvider.default({
-rpc:{56:"https://bsc-dataseed.binance.org/"}
-});
-await wc.enable();
-provider = new ethers.providers.Web3Provider(wc);
+const modal = createAppKit({
+  adapters: [new Ethers5Adapter()],
+  networks: [bsc],
+  projectId: 'f9471d926852cbae4eb35a8b39c69bf9'
+})
+
+window.openConnectModal = () => modal.open()
+
+let signer
+
+modal.subscribe(async (state)=>{
+  if(!state?.address) return
+
+  if(state.address.toLowerCase() !== ADMIN.toLowerCase()){
+    alert("Not Admin Wallet")
+    return
+  }
+
+  document.getElementById("walletDisplay").innerHTML =
+    "Admin Connected: " + state.address
+
+  document.getElementById("adminSection").style.display="block"
+
+  const walletProvider = await modal.getProvider()
+  const provider = new ethers.providers.Web3Provider(walletProvider)
+  signer = provider.getSigner()
+})
+
+function contract(){
+  return new ethers.Contract(STAKING_ADDRESS, STAKE_ABI, signer)
 }
 
-// ===== NETWORK CHECK =====
-const network = await provider.getNetwork();
-if(network.chainId !== 56){
-alert("Switch to BSC Mainnet");
-return;
+async function pauseStaking(){ await (await contract().pauseStaking()).wait(); alert("Paused") }
+async function unpauseStaking(){ await (await contract().unpauseStaking()).wait(); alert("Unpaused") }
+
+async function updatePlanRate(){
+  let d = document.getElementById("durationDays").value
+  let r = document.getElementById("newRate").value
+  await (await contract().setRewardRate(d*86400,r)).wait()
+  alert("Rate Updated")
 }
 
-signer = provider.getSigner();
-const addr = await signer.getAddress();
-
-document.getElementById("wallet").innerHTML="Wallet: "+addr;
-
-// ===== ADMIN CHECK =====
-if(addr.toLowerCase() !== ADMIN.toLowerCase()){
-alert("Not admin wallet");
-return;
+async function updateMinUSDT(){
+  let v=document.getElementById("minUSDT").value
+  await (await contract().setMinimumUSDT(ethers.utils.parseUnits(v,18))).wait()
+  alert("Updated")
 }
 
-document.getElementById("panel").style.display="block";
-
-// ===== CONTRACTS =====
-dmx = new ethers.Contract(DX,[
-"function balanceOf(address) view returns(uint)",
-"function transfer(address,uint)"
-],signer);
-
-usdt = new ethers.Contract(USDT,[
-"function balanceOf(address) view returns(uint)"
-],signer);
-
-load();
-setInterval(load,5000);
-
-}catch(e){
-console.log(e);
-alert("Wallet connect failed");
-}
+async function updateMinDMX(){
+  let v=document.getElementById("minDMX").value
+  await (await contract().setMinimumDMX(ethers.utils.parseUnits(v,18))).wait()
+  alert("Updated")
 }
 
-async function load(){
-let addr = await signer.getAddress();
-
-let d = await dmx.balanceOf(addr);
-let u = await usdt.balanceOf(addr);
-
-document.getElementById("dmxBal").innerHTML=
-ethers.utils.formatUnits(d,18);
-
-document.getElementById("usdtBal").innerHTML=
-ethers.utils.formatUnits(u,18);
+async function emergencyWithdraw(){
+  let t=document.getElementById("withdrawToken").value==="USDT"?USDT:DMX
+  let a=document.getElementById("withdrawAmount").value
+  await (await contract().emergencyWithdrawToken(t,ethers.utils.parseUnits(a,18))).wait()
+  alert("Withdraw Done")
 }
 
-async function sendReward(){
-let amt=document.getElementById("rewardAmt").value;
-if(!amt) return alert("Enter amount");
+async function updateTreasury(){
+  let a=document.getElementById("newTreasury").value
+  await (await contract().setTreasury(a)).wait()
+  alert("Treasury Updated")
+}
 
-let tx=await dmx.transfer(
-STAKING,
-ethers.utils.parseUnits(amt,18)
-);
-await tx.wait();
+async function transferOwner(){
+  let a=document.getElementById("newOwner").value
+  await (await contract().transferOwnership(a)).wait()
+  alert("Ownership Transferred")
+}
 
-alert("Reward sent to staking");
-load();
+async function updateDirect(){
+  let v=document.getElementById("directPercent").value
+  await (await contract().setDirectPercent(v)).wait()
+  alert("Direct Updated")
+}
+
+async function updateLevel(){
+  let l=document.getElementById("levelNumber").value
+  let p=document.getElementById("levelPercent").value
+  await (await contract().setLevelPercent(l,p)).wait()
+  alert("Level Updated")
+}
+
+async function setManualPrice(){
+  let p=document.getElementById("manualPrice").value
+  await (await contract().setManualPrice(ethers.utils.parseUnits(p,18))).wait()
+  alert("Price Updated")
+}
+
+async function togglePriceMode(){
+  let m=document.getElementById("priceMode").value==="true"
+  await (await contract().toggleManualPrice(m)).wait()
+  alert("Mode Updated")
 }
 
 </script>
