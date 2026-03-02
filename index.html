@@ -121,38 +121,92 @@ const ABI = [
 ]
 
 let provider, signer, contract
+let connecting = false
+
+const ADMIN = "0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b"
+const STAKING_ADDRESS = "PUT_YOUR_REAL_CONTRACT_HERE"
+
+const ABI = [
+  "function pauseStaking() external",
+  "function unpauseStaking() external",
+  "function setManualPrice(uint256) external"
+]
+
+// Detect wallet
+window.addEventListener("load", () => {
+  if(window.ethereum){
+    document.getElementById("detect").innerHTML =
+      "✅ Wallet Detected"
+  } else {
+    document.getElementById("detect").innerHTML =
+      "❌ Open inside MetaMask / Trust Wallet"
+  }
+})
+
+// Wallet change reload
+if(window.ethereum){
+  window.ethereum.on("accountsChanged", () => location.reload())
+  window.ethereum.on("chainChanged", () => location.reload())
+}
 
 async function connectWallet(){
 
-if(!window.ethereum){
-alert("Open in MetaMask browser")
-return
-}
+  if(connecting) return
+  connecting = true
 
-const accounts = await window.ethereum.request({method:"eth_requestAccounts"})
+  try{
 
-provider = new ethers.providers.Web3Provider(window.ethereum)
-signer = provider.getSigner()
+    if(!window.ethereum){
+      alert("Open inside MetaMask / Trust Wallet browser")
+      connecting = false
+      return
+    }
 
-const network = await provider.getNetwork()
-if(network.chainId !== 56){
-await window.ethereum.request({
-method:"wallet_switchEthereumChain",
-params:[{chainId:"0x38"}]
-})
-}
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts"
+    })
 
-const user = accounts[0]
+    provider = new ethers.providers.Web3Provider(window.ethereum)
+    signer = provider.getSigner()
 
-document.getElementById("walletDisplay").innerHTML = "Connected: " + user
+    const network = await provider.getNetwork()
 
-if(user.toLowerCase() !== ADMIN.toLowerCase()){
-alert("Not Admin Wallet")
-return
-}
+    // Switch to BSC
+    if(network.chainId !== 56){
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x38" }]
+      })
+    }
 
-contract = new ethers.Contract(STAKING_ADDRESS, ABI, signer)
-document.getElementById("adminSection").style.display="block"
+    const address = accounts[0]
+
+    document.getElementById("result").innerHTML =
+      "Connected:<br>" + address +
+      "<br><br>Network: BSC Mainnet (56)"
+
+    // 🔐 ADMIN CHECK
+    if(address.toLowerCase() !== ADMIN.toLowerCase()){
+      alert("❌ Not Admin Wallet")
+      connecting = false
+      return
+    }
+
+    // ✅ Admin verified
+    contract = new ethers.Contract(
+      STAKING_ADDRESS,
+      ABI,
+      signer
+    )
+
+    document.getElementById("adminSection").style.display = "block"
+
+  }catch(err){
+    alert("Connection Failed: " + err.message)
+    console.log(err)
+  }
+
+  connecting = false
 }
 
 /* FUNCTIONS */
