@@ -99,7 +99,8 @@ input,select{width:95%;padding:10px;margin-top:10px;background:#000;border:1px s
 </div>
 
 <script>
-
+let provider, signer, contract
+  
 const ADMIN = "0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b"
 const STAKING_ADDRESS = "PUT_STAKING_CONTRACT"
 const USDT = "0x55d398326f99059fF775485246999027B3197955"
@@ -120,85 +121,69 @@ const ABI = [
 "function toggleManualPrice(bool) external"
 ]
 
-let provider, signer, contract
-let connecting = false
+let connecting = false;
 
-// Detect wallet
-window.addEventListener("load", () => {
-  if(window.ethereum){
-    document.getElementById("detect").innerHTML =
-      "✅ Wallet Detected"
-  } else {
-    document.getElementById("detect").innerHTML =
-      "❌ Open inside MetaMask / Trust Wallet"
-  }
-})
-
-// Wallet change reload
 if(window.ethereum){
-  window.ethereum.on("accountsChanged", () => location.reload())
-  window.ethereum.on("chainChanged", () => location.reload())
+
+  window.ethereum.on("accountsChanged", () => {
+    location.reload();
+  });
+
+  window.ethereum.on("chainChanged", () => {
+    location.reload();
+  });
+
 }
 
 async function connectWallet(){
 
-  if(connecting) return
-  connecting = true
+  if(connecting) return;
+  connecting = true;
 
   try{
 
     if(!window.ethereum){
-      alert("Open inside MetaMask / Trust Wallet browser")
-      connecting = false
-      return
+      alert("Open inside MetaMask / Trust Wallet browser");
+      connecting = false;
+      return;
     }
 
+    // Request Account
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts"
-    })
+    });
 
-    provider = new ethers.providers.Web3Provider(window.ethereum)
-    signer = provider.getSigner()
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
 
-    const network = await provider.getNetwork()
+    const network = await provider.getNetwork();
 
-    // Switch to BSC
+    // Auto switch to BSC
     if(network.chainId !== 56){
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: "0x38" }]
-      })
+      });
     }
 
-    const address = accounts[0]
+    userAddress = accounts[0];
 
-    document.getElementById("result").innerHTML =
-      "Connected:<br>" + address +
-      "<br><br>Network: BSC Mainnet (56)"
+document.getElementById("walletDisplay").innerHTML =
+  "Connected: " +
+  userAddress.slice(0,6) + "..." +
+  userAddress.slice(-4) +
+  "<br><br>Network: BSC Mainnet (56)";
 
-    // 🔐 ADMIN CHECK
-    if(address.toLowerCase() !== ADMIN.toLowerCase()){
-      alert("❌ Not Admin Wallet")
-      connecting = false
-      return
     }
-
-    // ✅ Admin verified
-    contract = new ethers.Contract(
-      STAKING_ADDRESS,
-      ABI,
-      signer
-    )
-
-    document.getElementById("adminSection").style.display = "block"
-
+  
   }catch(err){
-    alert("Connection Failed: " + err.message)
-    console.log(err)
+    alert("Connection Failed: " + err.message);
+    console.log(err);
   }
 
-  connecting = false
+  connecting = false;
 }
+
 
 /* FUNCTIONS */
 
