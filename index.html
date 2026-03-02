@@ -123,15 +123,6 @@ const ABI = [
 let provider, signer, contract
 let connecting = false
 
-const ADMIN = "0x53ba2d865be750d0e2d4d01bcb0a46ec1684c46b"
-const STAKING_ADDRESS = "PUT_YOUR_REAL_CONTRACT_HERE"
-
-const ABI = [
-  "function pauseStaking() external",
-  "function unpauseStaking() external",
-  "function setManualPrice(uint256) external"
-]
-
 // Detect wallet
 window.addEventListener("load", () => {
   if(window.ethereum){
