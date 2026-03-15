@@ -858,95 +858,94 @@ clearInterval(reconnect);
 ];  
   
         let provider, signer, contract, userAddress;
-
+    
+// 1. Primary Sync Function (Only runs on click or initialization)
 window.syncWallet = async function() {
+    if (!window.appKitModal) return;
+    const walletProvider = window.appKitModal.getWalletProvider();
+    
+    if (walletProvider) {
+        try {
+            provider = new ethers.providers.Web3Provider(walletProvider);
+            
+            // Network Check (BSC Mainnet)
+            const network = await provider.getNetwork();
+            if(network.chainId !== 56) {
+                alert("Please switch to BSC Mainnet");
+                return;
+            }
 
-if (!window.appKitModal) return;
+            signer = provider.getSigner();
+            const tempAddress = await signer.getAddress();
 
-const walletProvider = window.appKitModal.getWalletProvider();
+            // Admin Security Check
+            if(tempAddress.toLowerCase() !== ADMIN_WALLET.toLowerCase()){
+                alert("Access Denied: Not Admin Wallet");
+                return;
+            }
 
-if (walletProvider) {
+            userAddress = tempAddress;
+            contract = new ethers.Contract(contractAddress, abi, signer);
 
-provider = new ethers.providers.Web3Provider(walletProvider);
-
-// NETWORK CHECK
-const network = await provider.getNetwork();
-
-if(network.chainId !== 56){
-alert("Please switch to BSC Mainnet");
-return;
-}
-
-// GET SIGNER
-signer = provider.getSigner();
-userAddress = await signer.getAddress();
-
-// ADMIN SECURITY CHECK
-if(userAddress.toLowerCase() !== ADMIN_WALLET.toLowerCase()){
-alert("Not Admin Wallet");
-return;
-}
-
-// BUTTON UPDATE
-const btn = document.getElementById("walletBtn");
-
-const short =
-userAddress.slice(0,6) + "..." + userAddress.slice(-4);
-
-const balanceWei = await provider.getBalance(userAddress);
-const balance = ethers.utils.formatEther(balanceWei);
-
-btn.innerText =
-short + " | " + parseFloat(balance).toFixed(3) + " BNB";
-
-btn.classList.remove("bg-amber-500","text-black");
-btn.classList.add("bg-emerald-600","text-white");
-btn.classList.add("walletConnected");
-
-// CONTRACT CONNECT
-contract = new ethers.Contract(contractAddress, abi, signer);
-
-}
-
+            // UI Initial Update
+            updateHeaderUI();
+            
+            // Show Admin Panel
+            const panel = document.getElementById('adminPanel');
+            if(panel) {
+                panel.style.opacity = "1";
+                panel.style.pointerEvents = "all";
+            }
+        } catch (error) {
+            console.error("Sync failed:", error);
+        }
+    }
 };
 
+// 2. Helper function to update Header UI
+async function updateHeaderUI() {
+    if(!userAddress || !provider) return;
+    
+    const btn = document.getElementById("walletBtn");
+    const status = document.getElementById('adminStatus');
+    const short = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+    
+    const balanceWei = await provider.getBalance(userAddress);
+    const balance = ethers.utils.formatEther(balanceWei);
 
-// AUTO ADMIN STATUS REFRESH
+    if(btn) {
+        btn.innerText = `${short} | ${parseFloat(balance).toFixed(3)} BNB`;
+        btn.style.backgroundColor = "#10b981"; // Emerald Green
+        btn.classList.add("walletConnected");
+    }
+    
+    if(status) {
+        status.innerText = "Verified: " + short;
+    }
+}
 
+// 3. Optimized Refresh Loop (Refreshes data only, not connection)
 setInterval(async () => {
+    try {
+        if (!userAddress) {
+            // Check if wallet is already authorized but not synced in state
+            const walletProvider = window.appKitModal.getWalletProvider();
+            if (walletProvider) await window.syncWallet();
+            return;
+        }
 
-try{
+        // Only refresh Stats/Liquidity if contract is ready
+        if (contract) {
+            await loadStats();
+            if (typeof loadLiquidity === "function") await loadLiquidity();
+            if (typeof checkSwapStatus === "function") await checkSwapStatus();
+        }
 
-if(!userAddress){
-await window.syncWallet();
-return;
-}
+    } catch (err) {
+        console.error("Loop refresh error:", err);
+    }
+}, 5000);
 
-document.getElementById('adminPanel').style.opacity = "1";
-document.getElementById('adminPanel').style.pointerEvents = "all";
-
-const btn = document.getElementById('walletBtn');
-
-btn.innerText =
-userAddress.slice(0,6)+"..."+userAddress.slice(-4)+" ONLINE";
-
-btn.style.backgroundColor = "#10b981";
-
-document.getElementById('adminStatus').innerText =
-"Verified: " + userAddress.slice(0,6)+"..."+userAddress.slice(-4);
-
-// LOAD DATA
-loadStats();
-loadLiquidity();
-checkSwapStatus();
-
-}catch(err){
-
-console.error(err);
-
-}
-
-},5000);
   
         async function loadStats() {  
   
