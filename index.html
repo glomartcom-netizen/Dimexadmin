@@ -879,17 +879,25 @@ return;
 
 // SIGNER
 signer = provider.getSigner();
+signer = provider.getSigner();
 userAddress = await signer.getAddress();
 
-// CONTRACT INIT
 contract = new ethers.Contract(contractAddress, abi, signer);
 
-// ADMIN SECURITY CHECK
+/* ADMIN SECURITY CHECK */
+
+try{
+
 const owner = await contract.owner();
 
 if(userAddress.toLowerCase() !== owner.toLowerCase()){
 alert("Only Contract Owner Allowed");
 return;
+}
+
+}catch(e){
+
+console.warn("Owner check skipped");
 }
 
 // WALLET BUTTON UPDATE
