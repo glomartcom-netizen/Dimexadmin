@@ -1463,44 +1463,40 @@ ethers.utils.parseEther(maxReward.toString())
   
 }  
   
-// =============================  
-// GAME REWARD POOL CONTROL  
-// =============================  
-  
-// ADD REWARD POOL  
+// =============================
+// GAME REWARD POOL CONTROL
+// =============================
+
+// ADD REWARD POOL
 async function addGamePool(){
 
 if(!contract) return alert("Connect Admin First");
 
-const amt =
-document.getElementById("poolAmt").value;
+const amt = document.getElementById("poolAmt").value;
 
 if(!amt) return alert("Enter Amount");
 
 await txWrap(
 contract.addGameRewardPool(amt)
-)  
-);  
-  
-}  
-  
-  
-// WITHDRAW GAME POOL  
+);
+
+}
+
+
+// WITHDRAW GAME POOL
 async function withdrawGamePool(){
 
 if(!contract) return alert("Connect Admin First");
 
-const amt =
-document.getElementById("poolAmt").value;
+const amt = document.getElementById("poolAmt").value;
 
 if(!amt) return alert("Enter Amount");
 
 await txWrap(
 contract.withdrawGameRewardPool(amt)
-)  
-);  
-  
-}  
+);
+
+}
   
   
 // =============================  
