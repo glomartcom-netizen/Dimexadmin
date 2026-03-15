@@ -859,35 +859,35 @@ clearInterval(reconnect);
   
         let provider, signer, contract, userAddress;
 
-// 1. Function to Update UI specifically
-async function handleUIUpdate(isConnected) {
+// 1. Force UI Update Logic
+function refreshAdminUI(isConnected, address = "") {
     const btn = document.getElementById("walletBtn");
     const panel = document.getElementById('adminPanel');
     const statusText = document.getElementById('adminStatus');
 
-    if (isConnected && userAddress) {
-        // Change Button Color to Green and text to Online
-        btn.innerText = "ONLINE | " + userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
-        btn.style.backgroundColor = "#10b981"; // Green color
-        btn.style.color = "#ffffff";
+    if (isConnected && address) {
+        // Change Button to Green & Online
+        btn.innerHTML = `ONLINE | ${address.slice(0, 6)}...${address.slice(-4)}`;
+        btn.style.setProperty("background-color", "#10b981", "important");
+        btn.style.setProperty("color", "#ffffff", "important");
         btn.classList.add("walletConnected");
 
-        // Unhide Admin Panel
+        // Reveal the Admin Panel
         if (panel) {
+            panel.classList.remove("opacity-20", "pointer-events-none");
             panel.style.opacity = "1";
             panel.style.pointerEvents = "all";
-            panel.style.display = "block"; // Ensure it is visible
+            panel.style.display = "block"; 
         }
 
-        // Update Status Text
         if (statusText) {
-            statusText.innerText = "Verified Admin: " + userAddress;
+            statusText.innerText = "Verified Admin: " + address;
             statusText.style.color = "#38bdf8";
         }
     } else {
-        // Reset if disconnected
+        // Reset to default hidden state
         btn.innerText = "Connect Admin";
-        btn.style.backgroundColor = ""; 
+        btn.style.backgroundColor = "";
         if (panel) {
             panel.style.opacity = "0.2";
             panel.style.pointerEvents = "none";
@@ -895,7 +895,7 @@ async function handleUIUpdate(isConnected) {
     }
 }
 
-// 2. Main Sync Wallet Function
+// 2. Optimized Sync Wallet
 window.syncWallet = async function() {
     if (!window.appKitModal) return;
     const walletProvider = window.appKitModal.getWalletProvider();
@@ -906,50 +906,47 @@ window.syncWallet = async function() {
             const { chainId } = await provider.getNetwork();
             
             if(chainId !== 56) {
-                alert("Please switch to BSC Mainnet");
+                alert("Please switch to BSC Mainnet (Chain ID 56)");
                 return;
             }
 
             signer = provider.getSigner();
             const addr = await signer.getAddress();
 
-            // Admin Security Check
-            if(addr.toLowerCase() !== ADMIN_WALLET.toLowerCase()){
-                alert("Access Denied: Not Admin Wallet");
-                return;
+            if(addr.toLowerCase() === ADMIN_WALLET.toLowerCase()){
+                userAddress = addr;
+                contract = new ethers.Contract(contractAddress, abi, signer);
+                
+                // Success! Update UI
+                refreshAdminUI(true, addr);
+                console.log("Admin Authorized");
+            } else {
+                alert("Access Denied: unauthorized wallet.");
             }
-
-            userAddress = addr;
-            contract = new ethers.Contract(contractAddress, abi, signer);
-
-            // Trigger UI update immediately
-            await handleUIUpdate(true);
-            
         } catch (error) {
-            console.error("Wallet Sync Error:", error);
+            console.error("Wallet connection failed:", error);
         }
     }
 };
 
-// 3. Optimized Refresh Loop
+// 3. Persistent Loop (Keeps Admin Panel Un-hidden)
 setInterval(async () => {
-    try {
+    const walletProvider = window.appKitModal?.getWalletProvider();
+    
+    if (walletProvider) {
+        // If provider exists but we don't have the address yet, try to sync
         if (!userAddress) {
-            // Try to sync if wallet is already connected to the browser
-            const walletProvider = window.appKitModal.getWalletProvider();
-            if (walletProvider) await window.syncWallet();
+            await window.syncWallet();
         } else {
-            // If already connected, just refresh UI and Data
-            await handleUIUpdate(true);
+            // Keep UI in "ONLINE" mode
+            refreshAdminUI(true, userAddress);
             
-            if (typeof loadStats === "function") await loadStats();
-            if (typeof loadLiquidity === "function") await loadLiquidity();
-            if (typeof checkSwapStatus === "function") await checkSwapStatus();
+            // Auto-refresh stats
+            if (typeof loadStats === "function") loadStats();
+            if (typeof loadLiquidity === "function") loadLiquidity();
         }
-    } catch (err) {
-        console.error("Interval Refresh Error:", err);
     }
-}, 5000);
+}, 3000);
 
 
   
