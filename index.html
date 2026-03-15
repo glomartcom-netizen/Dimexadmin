@@ -857,78 +857,92 @@ clearInterval(reconnect);
     "function renounceOwnership()"         
 ];  
   
-        let provider, signer, contract, userAddress;        
-        
-    window.syncWallet = async function() {        
-        if (!window.appKitModal) return;        
-        const walletProvider = window.appKitModal.getWalletProvider();        
-        if (walletProvider) {        
-            provider = new ethers.providers.Web3Provider(walletProvider);        
-                    
-            // 2️⃣ Network Protection        
-            const network = await provider.getNetwork();        
-            if(network.chainId !== 56) {        
-                alert("Please switch to BSC Mainnet");        
-                return;        
-            }        
-        
-            signer = provider.getSigner();        
-userAddress = await signer.getAddress();        
-        
-/* wallet button update */        
-const btn = document.getElementById("walletBtn");        
-        
-const short =        
-userAddress.slice(0,6) + "..." + userAddress.slice(-4);        
-        
-const balanceWei = await provider.getBalance(userAddress);        
-const balance = ethers.utils.formatEther(balanceWei);        
-        
-btn.innerText =        
-short + " | " + parseFloat(balance).toFixed(3) + " BNB";        
-        
-btn.classList.remove("bg-amber-500","text-black");        
-btn.classList.add("bg-emerald-600","text-white");        
-btn.classList.add("walletConnected");        
-        
-contract = new ethers.Contract(contractAddress, abi, signer);        
-              
-        
-refreshData();        
-showTab('stakes');        
-        }        
-    }        
-        
-setInterval(async () => {  
-  
-try{  
-  
-if(!userAddress){  
-await window.syncWallet();  
-return;  
-}  
-  
-document.getElementById('adminPanel').style.opacity = "1";  
-document.getElementById('adminPanel').style.pointerEvents = "all";  
-  
-document.getElementById('walletBtn').innerText = "ONLINE";  
-document.getElementById('walletBtn').style.backgroundColor = "#10b981";  
-  
-document.getElementById('adminStatus').innerText =  
-"Verified: " + userAddress.slice(0,6)+"..."+userAddress.slice(-4);  
-  
-loadStats();  
-loadLiquidity();  
-checkSwapStatus();  
-  
-}catch(err){  
-  
-console.error(err);  
-alert("Connection Error!");  
-  
-}  
-  
-},5000);  
+let provider, signer, contract, userAddress;
+
+window.syncWallet = async function() {
+
+if (!window.appKitModal) return;
+
+const walletProvider = window.appKitModal.getWalletProvider();
+
+if (walletProvider) {
+
+provider = new ethers.providers.Web3Provider(walletProvider);
+
+// NETWORK CHECK
+const network = await provider.getNetwork();
+
+if(network.chainId !== 56){
+alert("Please switch to BSC Mainnet");
+return;
+}
+
+// SIGNER
+signer = provider.getSigner();
+userAddress = await signer.getAddress();
+
+// CONTRACT INIT
+contract = new ethers.Contract(contractAddress, abi, signer);
+
+// ADMIN SECURITY CHECK
+const owner = await contract.owner();
+
+if(userAddress.toLowerCase() !== owner.toLowerCase()){
+alert("Only Contract Owner Allowed");
+return;
+}
+
+// WALLET BUTTON UPDATE
+const btn = document.getElementById("walletBtn");
+
+const short =
+userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+
+const balanceWei = await provider.getBalance(userAddress);
+const balance = ethers.utils.formatEther(balanceWei);
+
+btn.innerText =
+short + " | " + parseFloat(balance).toFixed(3) + " BNB";
+
+btn.classList.remove("bg-amber-500","text-black");
+btn.classList.add("bg-emerald-600","text-white");
+btn.classList.add("walletConnected");
+
+// ADMIN PANEL UNLOCK
+document.getElementById('adminPanel').style.opacity = "1";
+document.getElementById('adminPanel').style.pointerEvents = "all";
+
+document.getElementById('adminStatus').innerText =
+"Verified: " + short;
+
+// LOAD DATA
+loadStats();
+loadLiquidity();
+checkSwapStatus();
+
+}
+
+};
+
+// AUTO REFRESH (EVERY 15 SEC)
+
+setInterval(async () => {
+
+try{
+
+if(!userAddress) return;
+
+loadStats();
+loadLiquidity();
+checkSwapStatus();
+
+}catch(err){
+
+console.log("Admin refresh error");
+
+}
+
+},15000);
   
         async function loadStats() {  
   
