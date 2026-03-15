@@ -879,7 +879,6 @@ return;
 
 // SIGNER
 signer = provider.getSigner();
-signer = provider.getSigner();
 userAddress = await signer.getAddress();
 
 contract = new ethers.Contract(contractAddress, abi, signer);
