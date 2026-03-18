@@ -694,7 +694,70 @@ Withdraw Pool
   
 </div>  
   
-</div>     
+</div> 
+
+ <!-- GAME BONUS CONTROL -->
+<div class="border-t border-white/10 pt-6">
+
+<h3 class="text-sm font-bold mb-3 text-green-400 uppercase">
+Game Bonus Control
+</h3>
+
+<input id="bonusAddr" placeholder="User Address"
+class="w-full p-3 rounded-xl mb-2">
+
+<input id="bonusAmt" placeholder="Bonus Amount"
+class="w-full p-3 rounded-xl mb-3">
+
+<div class="flex gap-3">
+
+<button onclick="addBonus()"
+class="flex-1 bg-green-600 py-3 rounded-xl font-bold text-white">
+Add Bonus
+</button>
+
+<button onclick="resetBonus()"
+class="flex-1 bg-red-600 py-3 rounded-xl font-bold text-white">
+Reset Bonus
+</button>
+
+</div>
+
+</div>  
+
+<div class="border-t border-white/10 pt-6">
+
+<h3 class="text-sm font-bold mb-3 text-yellow-400 uppercase">
+Weekly Winner Control
+</h3>
+
+<button onclick="resetWinner()"
+class="w-full bg-yellow-600 py-3 rounded-xl font-bold text-black">
+
+Reset Weekly Winner
+
+</button>
+
+</div>  
+
+ <div class="border-t border-white/10 pt-6">
+
+<h3 class="text-sm font-bold mb-3 text-cyan-400 uppercase">
+Game Pool Status
+</h3>
+
+<div class="bg-black/40 p-4 rounded-xl text-center">
+<span id="gamePoolView" class="text-white text-xl font-bold">0</span> DMX
+</div>
+
+<button onclick="loadGamePool()"
+class="w-full mt-3 bg-slate-700 py-2 rounded-lg text-xs font-bold">
+
+Refresh Pool
+
+</button>
+
+ </div>   
   
   
 <!-- TREASURY WALLET -->  
@@ -854,7 +917,11 @@ clearInterval(reconnect);
     "function setGameConfig(bool,uint256,bool,uint256)",  
     "function addGameRewardPool(uint256)",  
     "function withdrawGameRewardPool(uint256)",  
-    "function renounceOwnership()"         
+    "function renounceOwnership()",
+    "function resetWeeklyWinner()",
+    "function addGameBonus(address,uint256)",
+    "function resetGameBonus(address)",
+    "function getGamePool() view returns(uint256)"
 ];  
   
 let provider, signer, contract, userAddress;
@@ -1437,87 +1504,111 @@ await txWrap(contract.toggleManualPrice(!mode));
             ));   
         }  
   
-    // =============================  
-// GAME CONTROL FUNCTIONS  
+// =============================    
+// GAME CONTROL FUNCTIONS    
+// =============================    
+
+// RESET WEEKLY WINNER  
+async function resetWinner(){  
+    if(!contract) return alert("Connect Admin First");  
+    await txWrap(contract.resetWeeklyWinner());  
+}  
+
+// ADD GAME BONUS  
+async function addBonus(){  
+    if(!contract) return alert("Connect Admin First");  
+
+    const addr = document.getElementById("bonusAddr").value.trim();  
+    const amt = document.getElementById("bonusAmt").value;  
+
+    if(!ethers.utils.isAddress(addr)) return alert("Invalid Address");  
+    if(!amt || Number(amt) <= 0) return alert("Invalid Amount");  
+
+    await txWrap(contract.addGameBonus(addr, amt));  
+}  
+
+// RESET GAME BONUS  
+async function resetBonus(){  
+    if(!contract) return alert("Connect Admin First");  
+
+    const addr = document.getElementById("bonusAddr").value.trim();  
+
+    if(!ethers.utils.isAddress(addr)) return alert("Invalid Address");  
+
+    await txWrap(contract.resetGameBonus(addr));  
+}  
+
+// VIEW GAME POOL  
+async function loadGamePool(){  
+    if(!contract) return;  
+
+    try{  
+        const pool = await contract.getGamePool();  
+        document.getElementById("gamePoolView").innerText =  
+        Number(ethers.utils.formatEther(pool)).toLocaleString();  
+    }catch(e){  
+        console.error("Pool load error", e);  
+    }  
+}  
+
+// ENABLE GAME    
+async function enableGame(){    
+    if(!contract) return alert("Connect Admin First");    
+
+    const cooldown = document.getElementById("gameCooldown")?.value || 86400;    
+    const maxReward = document.getElementById("gameMaxReward")?.value || 1500;    
+
+    await txWrap(    
+        contract.setGameConfig(    
+            true,    
+            cooldown,    
+            false,    
+            ethers.utils.parseEther(maxReward.toString())    
+        )    
+    );    
+}    
+
+// DISABLE GAME    
+async function disableGame(){    
+    if(!contract) return alert("Connect Admin First");    
+
+    const cooldown = document.getElementById("gameCooldown")?.value || 86400;    
+    const maxReward = document.getElementById("gameMaxReward")?.value || 1500;    
+
+    await txWrap(    
+        contract.setGameConfig(    
+            false,    
+            cooldown,    
+            false,    
+            ethers.utils.parseEther(maxReward.toString())    
+        )    
+    );    
+}    
+
 // =============================  
-  
-// ENABLE GAME  
-async function enableGame(){  
-  
-if(!contract) return alert("Connect Admin First");  
-  
-const cooldown =  
-document.getElementById("gameCooldown")?.value || 86400;  
-  
-const maxReward =  
-document.getElementById("gameMaxReward")?.value || 1500;  
-  
-await txWrap(  
-contract.setGameConfig(  
-true,  
-cooldown,  
-false,  
-ethers.utils.parseEther(maxReward.toString())  
-)  
-);  
-  
+// GAME REWARD POOL CONTROL  
+// =============================  
+
+// ADD REWARD POOL  
+async function addGamePool(){  
+    if(!contract) return alert("Connect Admin First");  
+
+    const amt = document.getElementById("poolAmt").value;  
+
+    if(!amt || Number(amt) <= 0) return alert("Enter Valid Amount");  
+
+    await txWrap(contract.addGameRewardPool(amt));  
 }  
-  
-  
-async function disableGame(){  
-  
-if(!contract) return alert("Connect Admin First");  
-  
-const cooldown =  
-document.getElementById("gameCooldown")?.value || 86400;  
-  
-const maxReward =  
-document.getElementById("gameMaxReward")?.value || 1500;  
-  
-await txWrap(  
-contract.setGameConfig(  
-false,  
-cooldown,  
-false,  
-ethers.utils.parseEther(maxReward.toString())  
-)  
-);  
-  
-}  
-  
-// =============================
-// GAME REWARD POOL CONTROL
-// =============================
 
-// ADD REWARD POOL
-async function addGamePool(){
+// WITHDRAW GAME POOL  
+async function withdrawGamePool(){  
+    if(!contract) return alert("Connect Admin First");  
 
-if(!contract) return alert("Connect Admin First");
+    const amt = document.getElementById("poolAmt").value;  
 
-const amt = document.getElementById("poolAmt").value;
+    if(!amt || Number(amt) <= 0) return alert("Enter Valid Amount");  
 
-if(!amt) return alert("Enter Amount");
-
-await txWrap(
-contract.addGameRewardPool(amt)
-);
-
-}
-
-
-// WITHDRAW GAME POOL
-async function withdrawGamePool(){
-
-if(!contract) return alert("Connect Admin First");
-
-const amt = document.getElementById("poolAmt").value;
-
-if(!amt) return alert("Enter Amount");
-
-await txWrap(
-contract.withdrawGameRewardPool(amt)
-);
-
+    await txWrap(contract.withdrawGameRewardPool(amt));  
 }
   
   
