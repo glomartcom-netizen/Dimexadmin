@@ -1559,13 +1559,13 @@ async function enableGame(){
     const maxReward = document.getElementById("gameMaxReward")?.value || 1500;    
 
     await txWrap(    
-        contract.setGameConfig(    
-            true,    
-            cooldown,    
-            false,    
-            ethers.utils.parseEther(maxReward.toString())    
-        )    
-    );    
+    contract.setGameConfig(    
+        true,    
+        cooldown,    
+        false,    
+        maxReward    
+    )    
+);
 }    
 
 // DISABLE GAME    
@@ -1576,13 +1576,13 @@ async function disableGame(){
     const maxReward = document.getElementById("gameMaxReward")?.value || 1500;    
 
     await txWrap(    
-        contract.setGameConfig(    
-            false,    
-            cooldown,    
-            false,    
-            ethers.utils.parseEther(maxReward.toString())    
-        )    
-    );    
+    contract.setGameConfig(    
+        false,    
+        cooldown,    
+        false,    
+        maxReward    
+    )    
+);
 }    
 
 // =============================  
